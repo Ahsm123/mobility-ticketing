@@ -10,6 +10,6 @@
 
 4. Timetable Maintenance - Operator -  Write - N/A - Eventual
 
-5. Real-time Availability - Both - Read/Write-heavy - Low - Good enough for search, and trustworthy enough to purchase.
+5. Real-time Availability - Both - Read heavy / Write rare - Low - Good enough for search, and trustworthy enough to purchase.
 
-6. Reporting - Operator - Heavy Read - Minutes? - Eventual
+6. Reporting - Operator - Read - Minutes? - Eventual
