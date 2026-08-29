@@ -10,8 +10,6 @@ order by t.scheduled_departure_utc
 limit 20;
 
 -- Query 2: ordered route stops
-select route stops fra en rute og forbinde med stops og order efter stop sequence
-
 select
     rs.stop_sequence,
     s.id,
@@ -29,11 +27,10 @@ left join trips t on t.route_id = r.id and t.service_date = :service_date
 group by r.id, r.short_name
 order by r.id;
 
+# Query examples
 
+query 1:
 
-
-
-query 1 example:
 select
     t.id,
     t.scheduled_departure_utc,
@@ -44,7 +41,8 @@ where t.route_id = 'LINE-M2'
 order by t.scheduled_departure_utc
 limit 20;
 
-query 2 example:
+query 2:
+
 select
     rs.stop_sequence,
     s.id,
@@ -54,7 +52,7 @@ join stops s on s.id = rs.stop_id
 where rs.route_id = 'LINE-M2'
 order by rs.stop_sequence;
 
-query 3 example:
+query 3:
 
 select 
     r.id, r.short_name, count(t.route_id) as trip_count
