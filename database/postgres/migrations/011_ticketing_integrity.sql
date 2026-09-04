@@ -29,7 +29,7 @@ ALTER TABLE tickets
 
     ALTER COLUMN status SET NOT NULL,
     ADD CONSTRAINT tickets_status_allowed
-        CHECK (status IN ('SCHEDULED', 'ACTIVE', 'VALIDATED', 'CAPTURED', 'ACCEPTED'));
+        CHECK (status IN ('ACTIVE', 'VALIDATED'));
 
 ALTER TABLE validations
     ALTER COLUMN ticket_code SET NOT NULL,
