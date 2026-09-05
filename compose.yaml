@@ -8,4 +8,15 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - ./database/postgres/init:/docker-entrypoint-initdb.d:ro
+      - ./database/postgres/init:/docker-entrypoint-initdb.d
+      - ./database/postgres/migrations/011_ticketing_integrity.sql:/docker-entrypoint-initdb.d/020_ticketing_integrity.sql:ro
+
+  pgweb:
+    image: sosedoff/pgweb
+    environment:
+      DATABASE_URL: postgres://mobility:mobility@postgres:5432/mobility?sslmode=disable
+    ports:
+      - "8080:8081"
+    depends_on:
+      - postgres
+    restart: unless-stopped
