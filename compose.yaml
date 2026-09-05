@@ -9,7 +9,7 @@ services:
       - "5432:5432"
     volumes:
       - ./database/postgres/init:/docker-entrypoint-initdb.d
-      - ./database/postgres/migrations/011_ticketing_integrity.sql:/docker-entrypoint-initdb.d/020_ticketing_integrity.sql:ro
+      - ./database/postgres/migrations:/migrations:ro
 
   pgweb:
     image: sosedoff/pgweb

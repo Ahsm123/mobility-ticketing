@@ -1,3 +1,5 @@
+BEGIN;
+
 -- 1,2,9
 ALTER TABLE trips
     ALTER COLUMN capacity SET NOT NULL,
@@ -26,7 +28,7 @@ ALTER TABLE tickets
 
     ALTER COLUMN status SET NOT NULL,
     ADD CONSTRAINT tickets_status_allowed
-        CHECK (status IN ('Active', 'Validated'));
+        CHECK (status IN ('Active', 'Validated', 'Cancelled'));
 
 -- 7
 ALTER TABLE tickets
@@ -59,12 +61,9 @@ ALTER TABLE validations
     ADD CONSTRAINT validations_result_allowed
         CHECK (result IN ('Accepted', 'Rejected'));
 
--- 12: a ticket can be rejected many times but accepted once.
-CREATE UNIQUE INDEX validations_one_accepted_per_ticket
-    ON validations (ticket_id)
-    WHERE result = 'Accepted';
-
 -- 11
 ALTER TABLE users
     ALTER COLUMN email SET NOT NULL,
     ADD CONSTRAINT users_email_unique UNIQUE (email);
+
+COMMIT;

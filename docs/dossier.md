@@ -29,6 +29,7 @@
 10. (B) External payments references must not accidentally represent the same payment more than once.
 11. (A) A users email must be unique
 12. (B) A used ticket cannot be validated again
+13. (A) Products, Tickets and Payments must have a valid currency.
 
 A: Can true/false be validated from the row = check, not null B: Do i need to look at other rows in the same table =
 unique, create unique index C: Do i need to look in another table for the value? = foreign key D: Do i need to calculate
