@@ -12,7 +12,7 @@
    same stop multiple times.
 
    Normalization prevents that a non key attribute is dependent on another non-key. If stop_name and stop_id where both
-   in route_stops, stop_name would be dependant on stop_id, and the stop_name would be repeated on every row in
+   in route_stops, stop_name would be dependent on stop_id, and the stop_name would be repeated on every row in
    route_stops.
 
 # Rules
@@ -21,7 +21,7 @@
 2. (A) Reserved seats cannot be negative or > capacity
 3. (A) Prices and payment amounts ! negative
 4. (A)+ (C) A Ticket must reference existing: User, Trip, Product
-5. (A)+ (C) A payment must reference an existing trip
+5. (A)+ (C) A payment must reference an existing ticket
 6. (A)+ (C) Validations must reference existing tickets
 7. (B) Ticket codes must be unique
 8. (A) Ticket validity cant end before it begins

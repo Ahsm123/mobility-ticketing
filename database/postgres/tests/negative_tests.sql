@@ -107,7 +107,57 @@ $$
     END
 $$;
 
+-- Rule 5: A payment must reference an existing ticket
+DO
+$$
+    BEGIN
+        UPDATE payments
+        SET ticket_id = ''
+        WHERE id = 'PAYMENT-1';
+        RAISE EXCEPTION 'expected payment_ticket_id_fk to be rejected, but it was accepted';
+    EXCEPTION
+        WHEN foreign_key_violation THEN
+            IF SQLSTATE <> '23503' THEN
+                RAISE EXCEPTION 'wrong SQLSTATE: got %', SQLSTATE;
+            END IF;
+            RAISE NOTICE 'ok: payment foreign key reference %', SQLSTATE;
+    END
+$$;
 
+-- Rule 6: Validations must reference existing tickets
+DO
+$$
+    BEGIN
+        UPDATE validations
+        SET ticket_id = ''
+        WHERE id = 'VALIDATION-1';
+        RAISE EXCEPTION 'expected validations_ticket_id_fk to be rejected, but it was accepted';
+    EXCEPTION
+        WHEN foreign_key_violation THEN
+            IF SQLSTATE <> '23503' THEN
+                RAISE EXCEPTION 'wrong SQLSTATE: got %', SQLSTATE;
+            END IF;
+            RAISE NOTICE 'ok: validations foreign key reference %', SQLSTATE;
+    END
+$$;
+
+-- Rule 7: Ticket codes must be unique
+DO
+$$
+    BEGIN
+        insert into tickets (id, user_id, trip_id, ticket_code, status, product_code,
+                             valid_from_utc, valid_to_utc, price, currency)
+        values ('TICKET-5', 'USER-1', 'TRIP-M2-20260429-0800', 'CODE-M2-0001', 'Active', 'SINGLE',
+                '2026-04-29 07:45:00+00', '2026-04-29 10:00:00+00', 36.00, 'DKK');
+        RAISE EXCEPTION 'expected tickets_ticket_code_unique to be rejected, but it was accepted';
+    EXCEPTION
+        WHEN unique_violation THEN
+            IF SQLSTATE <> '23505' THEN
+                RAISE EXCEPTION 'wrong SQLSTATE: got %', SQLSTATE;
+            END IF;
+            RAISE NOTICE 'ok: tickets code unique %', SQLSTATE;
+    END
+$$;
 
 
 
