@@ -10,19 +10,19 @@
 
 ### Issue 1
 
-- Evidence:
-- Problem:
-- Consequence:
-- Specific improvement:
-- Open question:
+- Evidence: 001 baseline: routes:9, stops:16
+- Problem: routes and stops references city which are not implemented yet
+- Consequence: we cant enforce integrity on names, can have Ålborg or Aalborg
+- Specific improvement: implement the city table
+- Open question: is city an entity or a label
 
 ### Issue 2
 
-- Evidence:
-- Problem:
-- Consequence:
-- Specific improvement:
-- Open question:
+- Evidence: 010 ticketing draft: validations:47
+- Problem: validations references vehicle id which are not implemented yet
+- Consequence: we can have ambigious vehicle names
+- Specific improvement: need to map out vehicle
+- Open question: 
 
 ## State-transition trace
 
