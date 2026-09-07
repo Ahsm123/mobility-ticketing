@@ -19,7 +19,7 @@ $$;
 
 -- Rule 2: Reserved seats cannot be negative or > capacity
 
-DO
+DO/login
 $$
     BEGIN
         UPDATE trips
