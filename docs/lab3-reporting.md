@@ -34,6 +34,27 @@ Da payments er authority, er det MV der er korrekt, og trigger-tabellen der er f
 
 ## Side-effect trace
 
+### Captured insert
+
+1. Check constraint: Not null, FK, Checks, Unique
+2. Trigger executor, opdaterer derived view, hvis den fejler
+   vil transaktionen rollback og fejle insert.
+3. `payments` og `daily_revenue_by_operator` får write lock,
+   og resten read lock fra joinet
+4. Returnerer 0 / 1 med antal affected rows.
+5. Direct query + function + trigger table vil afspejle det med det samme.
+6. Materialized view vil være stale indtil det er refreshed.
+
 ## Responsibility matrix
+
+| Criteria               | Direct query             | Function                 | Materialized view                        | Trigger table                                                                                           |
+|------------------------|--------------------------|--------------------------|------------------------------------------|---------------------------------------------------------------------------------------------------------|
+| Correctness            | Always correct           | Always correct           | Stale but correct after refresh          | Real-time on new data<br/> need backfill<br/> ikke korrekt hvis en status går fra captured til refunded |
+| Freshness              | Real-time                | Real-time                | Stale on new inserts                     | Fresh on new inserts                                                                                    |
+| Write cost             | None                     | None                     | None initially, only on refresh          | Extra write to table                                                                                    |
+| Read cost              | Need to read join tables | Need to read join tables | Low: already indexed                     | Low: already indexed                                                                                    |
+| Hidden side effects    | None                     | None                     | Blocks other readers from MV             | If payments are refunded data is incorrect, can abort transaction<br/>if write to derived table fails   |
+| Rebuildability         | Nothing to rebuild       | Nothing to rebuild       | Needs refresh                            | If deleted needs to fill in the data manually                                                           |
+| Operational complexity | Needs to know the query  | Harder to debug          | Can become slow with size, hard to debug | Needs to be maintained if something changes, like an extra status, hard to debug                        |
 
 ## Anbefaling
