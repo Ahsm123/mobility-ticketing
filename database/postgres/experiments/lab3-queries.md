@@ -5,3 +5,4 @@ FROM payments
     JOIN routes ON trips.route_id = routes.id 
 WHERE DATE_TRUNC('day', payments.created_utc) = 
     CURRENT_DATE AND payments.status = 'Captured' GROUP BY(routes.operator_id)
+

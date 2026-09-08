@@ -52,11 +52,11 @@ ALTER TABLE payments
     ADD CONSTRAINT payment_ticket_id_fk FOREIGN KEY (ticket_id) REFERENCES tickets (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
     ADD CONSTRAINT payments_amount_not_negative CHECK (amount >= 0),
     ADD CONSTRAINT payments_currency_iso4217 CHECK (currency ~ '^[A-Z]{3}$'),
-    ADD CONSTRAINT payments_valid_status CHECK ( status IN ('Pending', 'Authorized', 'Captured', 'Failed', 'Cancelled') );
-    
+    ADD CONSTRAINT payments_valid_status CHECK ( status IN ('Captured', 'Failed', 'Refunded') );
+
 CREATE UNIQUE INDEX payments_external_reference_unique
     ON payments (external_payment_reference)
-    WHERE status IN ('Pending', 'Authorized', 'Captured');
+    WHERE status IN ('Captured', 'Refunded');
 
 ALTER TABLE validations
     ALTER COLUMN ticket_id SET NOT NULL,
@@ -69,21 +69,21 @@ ALTER TABLE validations
     ADD CONSTRAINT validations_stop_id_fk FOREIGN KEY (stop_id) REFERENCES stops (id) ON DELETE RESTRICT ON UPDATE RESTRICT,
     -- ADD CONSTRAINT validations_device_id_fk FOREIGN KEY (device_id) REFERENCES,
     ADD CONSTRAINT validations_valid_result CHECK ( result IN ('Accepted', 'Rejected') ),
-    ADD CONSTRAINT validations_ticket_id_ticket_code_reference_same_ticket FOREIGN KEY (ticket_id, ticket_code) 
-        REFERENCES tickets(id, ticket_code) ON DELETE RESTRICT ON UPDATE RESTRICT;
+    ADD CONSTRAINT validations_ticket_id_ticket_code_reference_same_ticket FOREIGN KEY (ticket_id, ticket_code)
+        REFERENCES tickets (id, ticket_code) ON DELETE RESTRICT ON UPDATE RESTRICT;
 
 ALTER TABLE route_stops
     DROP CONSTRAINT route_stops_route_id_fkey,
     DROP CONSTRAINT route_stops_stop_id_fkey,
-    ADD CONSTRAINT route_stops_route_id_fk FOREIGN KEY (route_id) REFERENCES routes(id) ON DELETE CASCADE ON UPDATE RESTRICT,
-    ADD CONSTRAINT route_stops_stop_id FOREIGN KEY (stop_id) REFERENCES stops(id) ON DELETE RESTRICT ON UPDATE RESTRICT;
+    ADD CONSTRAINT route_stops_route_id_fk FOREIGN KEY (route_id) REFERENCES routes (id) ON DELETE CASCADE ON UPDATE RESTRICT,
+    ADD CONSTRAINT route_stops_stop_id FOREIGN KEY (stop_id) REFERENCES stops (id) ON DELETE RESTRICT ON UPDATE RESTRICT;
 
 ALTER TABLE trips
     DROP CONSTRAINT trips_route_id_fkey,
-    ADD CONSTRAINT trips_route_id_fk FOREIGN KEY (route_id) REFERENCES routes(id) ON DELETE RESTRICT ON UPDATE RESTRICT;
+    ADD CONSTRAINT trips_route_id_fk FOREIGN KEY (route_id) REFERENCES routes (id) ON DELETE RESTRICT ON UPDATE RESTRICT;
 
 ALTER TABLE routes
     DROP CONSTRAINT routes_operator_id_fkey,
-    ADD CONSTRAINT routes_operator_id_fk FOREIGN KEY (operator_id) REFERENCES operators(id) ON DELETE RESTRICT ON UPDATE RESTRICT;
+    ADD CONSTRAINT routes_operator_id_fk FOREIGN KEY (operator_id) REFERENCES operators (id) ON DELETE RESTRICT ON UPDATE RESTRICT;
 
 COMMIT;
