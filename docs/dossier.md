@@ -34,3 +34,9 @@
 A: Can true/false be validated from the row = check, not null B: Do i need to look at other rows in the same table =
 unique, create unique index C: Do i need to look in another table for the value? = foreign key D: Do i need to calculate
 or aggregate or know anything outside the db? = code
+
+# Decisions
+1. Context: payments status
+   Decision: changes to: failed, captured, refunded to reflect the labs implementation
+   Alternatives: had pending, authorized and canceled before, but no need to guess future implementation
+   Consequences: cant express payments state in flight. Payment can only be done not intermediate state.

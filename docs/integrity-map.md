@@ -29,6 +29,14 @@
 - Specific improvement: need to map out vehicle
 - Open question:
 
+### Issue 3
+
+- Evidence: 011 ticketing integrity:57
+- Problem: after altering status and implementing the revenue reporting, the duplicate key didnt catch the refunded case
+- Consequence: we can have duplicates of refunded payments, meaning we could refund more than once
+- Specific improvement: add 'refunded' to the unique check
+- Open question: Solved
+
 ## State-transition trace
 
 ### Ticket purchase
@@ -43,7 +51,7 @@
 3. Then we can insert payment
 
 - INSERT INTO payments
-- Payment state: Pending > Authorized > Captured
+- Payment state: Captured
 
 ### Ticket validation
 
