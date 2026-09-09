@@ -37,6 +37,14 @@
 - Specific improvement: add 'refunded' to the unique check
 - Open question: Solved
 
+### Issue 4
+
+- Evidence: 021 daily revenue trigger
+- Problem: Only runs on new inserts, and rolls back the insert if trigger fails.
+- Consequence: Data can be incorrect if payment is refunded. Couples database logic to the user flow.
+- Specific improvement: If we decide to implement this, we need a backfill mechanism and execute on refund.
+- Open question: If this a good idea, since we cant really avoid coupling to the user flow.
+
 ## State-transition trace
 
 ### Ticket purchase

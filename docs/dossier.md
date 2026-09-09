@@ -36,7 +36,13 @@ unique, create unique index C: Do i need to look in another table for the value?
 or aggregate or know anything outside the db? = code
 
 # Decisions
+
 1. Context: payments status
    Decision: changes to: failed, captured, refunded to reflect the labs implementation
    Alternatives: had pending, authorized and canceled before, but no need to guess future implementation
    Consequences: cant express payments state in flight. Payment can only be done not intermediate state.
+
+2. Context: deriving reporting data
+   Decision: function(operator_id, date). Centralized logic, fresh and correct data pr. operator.
+   Alternatives: materialized view if read cost gets too high. trigger tabel can be wrong without us knowing.
+   Consequences: higher read cost than derived views.

@@ -56,6 +56,7 @@ Da payments er authority, er det MV der er korrekt, og trigger-tabellen der er f
 | Hidden side effects    | None                     | None                     | Blocks other readers from MV             | If payments are refunded data is incorrect, can abort transaction<br/>if write to derived table fails   |
 | Rebuildability         | Nothing to rebuild       | Nothing to rebuild       | Needs refresh                            | If deleted needs to fill in the data manually                                                           |
 | Operational complexity | Needs to know the query  | Harder to debug          | Can become slow with size, hard to debug | Needs to be maintained if something changes, like an extra status, hard to debug                        |
+| Authority              | Payments                 | Payments                 | Payments                                 | Payments                                                                                                |
 
 ## Anbefaling
 
