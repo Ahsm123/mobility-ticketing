@@ -58,3 +58,24 @@ Da payments er authority, er det MV der er korrekt, og trigger-tabellen der er f
 | Operational complexity | Needs to know the query  | Harder to debug          | Can become slow with size, hard to debug | Needs to be maintained if something changes, like an extra status, hard to debug                        |
 
 ## Anbefaling
+
+Payments er authority. Vi har egentlig kun brug for query. Funktionen er en wrapped query. MV og trigger er derived
+kopier.
+Vil anbefale funktionen, fordi det er samme SQL for alle callers/apps, så de bare skal kalde den, istedet for at bygge
+selv.
+Derved har vi ikke en kopi liggende som kan være stale (MV) eller ikke korrekt (trigger), og vi styrer logikken et
+centralt sted.
+Funktionen tager operator og data, som passer med access patterns som siger rapport pr. operatør.
+
+Grunden til vi ikke vælger de derived tables lige nu, er fordi read cost ikke er et problem på nuværende tidspunkt.
+Trigger tabellen kan som den er lige nu, ikke garantere at data er korrekt og MV kan blive stale.
+Forskellen på de to er, at stale kan vi opdage og rette, vi opdager ikke forkert data.
+
+Hvis read cost bliver et problem
+
+- Skift til MV. Reporting er sat til eventual i access pattern så det er ok.
+- Authority forbliver payments. Freshness: scheduled refresh + timestamp for sidste kørsel, så læseren kan se alder.
+  Rebuild: refresh fra payments.
+- Trigger kræver omskrivning først, så den også dækker refunds.
+- Refresh må ikke ligge i en trigger på payments, så betaler den der køber en billet for læserens optimering, og en
+  refresh der fejler ruller betalingen tilbage.
