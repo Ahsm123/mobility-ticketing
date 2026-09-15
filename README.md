@@ -1,53 +1,52 @@
-# MobilityTicketing: Lecture 1 starter
+# MobilityTicketing
 
-This repository is the starter code for the first lecture. It contains a small PostgreSQL slice for route maintenance and timetable queries.
-
-The exercise is intentionally incomplete. Add the route-stop key, complete the seed data, write the three workload queries, and follow the lab brief in `docs/lab.md`.
+Coursework project: a PostgreSQL schema for ticket purchase, validation and
+reporting, built up lecture by lecture. Each lab strengthens or evolves the
+schema — see `docs/lab/` for the briefs and `docs/dossier.md` /
+`docs/integrity-map.md` for assumptions, decisions and open issues.
 
 ## Start the database
 
-Requirements:
-
-- Docker Desktop with Compose
-
-Start PostgreSQL:
+Requirements: Docker Desktop with Compose.
 
 ```bash
 docker compose up -d
 ```
 
-The database is available at `localhost:5432` with database `mobility`, user `mobility`, and password `mobility`.
-
-To stop it:
+Available at `localhost:5432`, database `mobility`, user/password `mobility`.
 
 ```bash
 docker compose down
 ```
 
-The starter seed loads operators, routes, and stops. Complete `database/postgres/002_seed.sql` with route-stop rows and trips after deciding on the route-stop primary key. The initialization scripts run only when PostgreSQL starts with an empty data directory, so rebuild the container when you need to replay them:
+`init/` scripts only run against an empty data volume, so rebuild when you
+need to replay them from scratch:
 
 ```bash
 docker compose down -v
 docker compose up -d
 ```
 
-## Your tasks
+## Project layout
 
-1. Add primary-key and foreign-key relationships where needed.
-2. Decide whether a route may visit the same stop more than once, and explain the choice.
-3. Add at least two trips per route on the same service date.
-4. Complete the three query skeletons.
-5. Compare the SQL model with your ER diagram.
-6. Record one assumption that may change later in `docs/dossier.md`.
+- `database/postgres/init/` — baseline schema and seed data. Runs once,
+  automatically, when Postgres starts against an empty volume.
+- `database/postgres/migrations/` — every schema change since the baseline,
+  numbered in order. **Not** auto-run - apply one at a time, so you can
+  inspect the effect of each step before moving to the next.
+- `database/postgres/queries/`, `database/postgres/tests/` - reference
+  queries and the integrity test suite.
+- `database/postgres/experiments/` - per-lab scratch queries and captured
+  evidence (`lab_03/`, `lab_04/`).
+- `docs/` - `dossier.md` (assumptions), `integrity-map.md` (invariants,
+  decision log, issue register), `access-patterns.md` (workload table),
+  `lab/` (lab briefs and reporting evidence), `diagrams/`.
 
-Do not add MongoDB, Redis, queues, payment logic, validation logic, reporting tables, or performance indexes in this first slice.
+## Applying a migration
 
-## Files
+```bash
+docker compose exec -T postgres psql -U mobility -d mobility < database/postgres/migrations/030_expand_product_identity.sql
+```
 
-- `compose.yaml`: PostgreSQL starter infrastructure.
-- `database/postgres/001_relational_baseline.sql`: incomplete relational schema.
-- `database/postgres/002_seed.sql`: repeatable starter seed with TODOs.
-- `database/postgres/003_queries.sql.example`: query skeleton for the three released workloads.
-- `docs/lab.md`: student-facing lab brief and submission checklist.
-
-The sample solution is intentionally not included in this repository.
+Run them in numeric order, one command at a time, checking state (e.g. via
+pgweb at `localhost:8080`) between each before applying the next.
