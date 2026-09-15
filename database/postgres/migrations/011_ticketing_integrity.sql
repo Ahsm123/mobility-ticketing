@@ -1,3 +1,5 @@
+-- docker compose exec -T postgres psql -U mobility -d mobility < database/postgres/migrations/[migration file]
+
 BEGIN;
 
 ALTER TABLE trips
