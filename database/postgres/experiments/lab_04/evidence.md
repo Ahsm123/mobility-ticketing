@@ -1,0 +1,2 @@
+﻿- product_code_trigger.sql køres efter 030. Ellers fejler new_writer på product_code NOT NULL
+- hvad skal der ske med triggeren efter 033?
