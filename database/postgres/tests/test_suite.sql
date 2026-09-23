@@ -1,4 +1,4 @@
--- Run: docker compose exec -T postgres psql -U mobility -d mobility -f /tests/negative_tests.sql
+-- Run: docker compose exec -T postgres psql -U mobility -d mobility -f /tests/test_suite.sql
 
 -- Rule 1: capacity cannot be negative and reserved seats
 DO
@@ -19,7 +19,7 @@ $$;
 
 -- Rule 2: Reserved seats cannot be negative or > capacity
 
-DO/login
+DO
 $$
     BEGIN
         UPDATE trips
