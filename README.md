@@ -59,6 +59,36 @@ Setup and reset instructions: [Setup & Reset](./docs/setup-and-reset.md)
 - [compare_price_and_valuta](./database/postgres/experiments/lab_04/compare_price_and_valuta.sql)
 
 ## Two decisions worth discussing
+
+### Reporting
+1. **Valg**
+[captured_revenue_for_day(operator_id, date)](./database/postgres/migrations/020_reporting_function.sql)
+- Funktion: alle kalder det samme, får samme data, og
+  læser data direkte fra `payments`, hvilket betyder at alle callers 
+  bruger samme SQL, og der findes ingen kopi som kan blive stale.
+
+2. **Alternativ**
+- Materialized view: billigere reads, men stale indtil refresh. Det er dog ok,
+  fordi reporting gerne må være eventual jf. access patterns, så MV vil måske være det
+  næste, hvis read cost bliver et problem. Refresh i en trigger på `payments` er dog ikke
+  optimalt, for så går read udover write cost, og hvis en refresh fejler, ruller
+  det betalingen tilbage.
+- Trigger table: data bliver ikke stale ved inserts, men det håndterer ikke at der skiftes
+  payment status, så det kan være forkert uden at man opdager det.
+3. **Hvorfor**
+- `payments` er authority, og funktionen læser direkte fra den.
+- Reporting er per operator, og det tager funktionen som parameter.
+  MV skulle filtreres på igen eller vedligeholdes per operator.
+- Read cost er ikke et problem endnu.
+
+4. **Evidens**
+- [lab3-reporting](./database/postgres/experiments/lab_03/lab3-reporting.md)
+
+### route_stops key
+1. Valg
+2. Alternativ
+3. Hvorfor det passer
+4. Fil
 For each: What did we choose? What was the alternative?
 Why does our choice fit MobilityTicketing? Which file or result supports it?
 

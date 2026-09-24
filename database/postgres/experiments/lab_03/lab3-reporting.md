@@ -1,7 +1,8 @@
 # Lab 3: reporting
 
-Alle tal er for revenue_date 2026-04-29. Celleformat: `OP-BUS beløb/antal | OP-METRO beløb/antal`.
-`—` betyder at mekanismen slet ikke har en række for den operator.
+Alle tal er for revenue_date 2026-04-29. 
+
+`OP-BUS price/count | OP-METRO price/count`
 
 | Tilstand                  | Direct query                                                                                                                  | Function            | Materialized view                                         | Trigger table |
 |---------------------------|-------------------------------------------------------------------------------------------------------------------------------|---------------------|-----------------------------------------------------------|---------------|
@@ -77,6 +78,6 @@ Hvis read cost bliver et problem
 - Skift til MV. Reporting er sat til eventual i access pattern så det er ok.
 - Authority forbliver payments. Freshness: scheduled refresh + timestamp for sidste kørsel, så læseren kan se alder.
   Rebuild: refresh fra payments.
-- Trigger kræver omskrivning først, så den også dækker refunds.
-- Refresh må ikke ligge i en trigger på payments, så betaler den der køber en billet for læserens optimering, og en
-  refresh der fejler ruller betalingen tilbage.
+- Trigger skal også reagere på refunds hvis den skal bruges.
+- Refresh må ikke ligge i en trigger på payments, så betaler den der køber en billet for read optimering, og en
+  refresh der fejler vil annullere betalingen.
