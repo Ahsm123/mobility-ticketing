@@ -1,0 +1,1 @@
+﻿create table baseline_snapshot as select id, product_code, price, currency from tickets;

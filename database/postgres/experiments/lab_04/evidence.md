@@ -248,4 +248,27 @@ Output fra: `select id, product_id from tickets where id = 'TICKET-10'`
 
 ## 11. Priser og valuta før/efter
 
-TODO
+- Starter fra tom db: `docker compose down -v` og `docker compose up -d`
+- Kører 011-022
+- Kører `baseline.sql`
+- Kører `baseline_snapshot_table.sql` som vi skal bruge til at sammenligne
+
+```
+id - product_code - price - currency
+TICKET-1 - SINGLE - 36.00 - DKK
+TICKET-2 - SINGLE - 36.00 - DKK
+TICKET-3 - DAY - 80.00 - DKK
+```
+
+- Kører 030-033
+- Kører `compare_price_and_valuta.sql` som skal give 0 rows, det betyder at der ikke er forskel
+  fra før 030 til efter 033.
+
+Output:
+
+```
+ id 
+----
+(0 rows)
+```
+
