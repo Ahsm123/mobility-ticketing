@@ -1,0 +1,1 @@
+DROP FUNCTION add_product_code CASCADE;
