@@ -4,7 +4,7 @@ Alle tal er for revenue_date 2026-04-29.
 
 `OP-BUS price/count | OP-METRO price/count`
 
-| Tilstand                  | Direct query                                                                                                                  | Function            | Materialized view                                         | Trigger table |
+| State                     | Direct query                                                                                                                  | Function            | Materialized view                                         | Trigger table |
 |---------------------------|-------------------------------------------------------------------------------------------------------------------------------|---------------------|-----------------------------------------------------------|---------------|
 | Baseline                  | 36.00/1 \| 36.00/1                                                                                                            | 36.00/1 \| 36.00/1  | ERROR 55000                                               | 0 rækker      |
 | Baseline efter MV refresh | 36.00/1 \| 36.00/1                                                                                                            | 36.00/1 \| 36.00/1  | 36.00/1 \| 36.00/1                                        | 0 rækker      |

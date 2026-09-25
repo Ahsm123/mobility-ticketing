@@ -5,7 +5,9 @@ Submitted commit:
 Setup and reset instructions: [Setup & Reset](./docs/setup-and-reset.md)
 
 ## Where to find the work
+
 ### Lecture 1: model, workload map and queries:
+
 - [access-patterns](./docs/access-patterns.md)
 - [ERD](./docs/diagrams/ERD_2.jpg)
 - [001_relational_baseline](./database/postgres/init/001_relational_baseline.sql)
@@ -13,11 +15,13 @@ Setup and reset instructions: [Setup & Reset](./docs/setup-and-reset.md)
 - [003_route_queries](./database/postgres/queries/003_route_queries.sql)
 
 ### Lecture 2: constraints and tests:
+
 - [integrity-map](./docs/integrity-map.md)
 - [011_ticketing_integrity](./database/postgres/migrations/011_ticketing_integrity.sql)
 - [test_suite](./database/postgres/tests/test_suite.sql)
 
 ### Lecture 3: reporting experiment and comparison:
+
 - [reporting-cases](./database/postgres/experiments/lab_03/reporting_cases.sql)
 - [lab3-reporting](./database/postgres/experiments/lab_03/lab3-reporting.md)
 - [base_revenue](./database/postgres/queries/base_revenue.sql)
@@ -26,13 +30,16 @@ Setup and reset instructions: [Setup & Reset](./docs/setup-and-reset.md)
 - [022_daily_captured_revenue](./database/postgres/migrations/022_daily_captured_revenue.sql)
 
 ### Lecture 4: migration stages and verification:
+
 - [evidence](./database/postgres/experiments/lab_04/evidence.md)
 
 #### Baseline (evidence 1)
+
 - [baseline](./database/postgres/experiments/lab_04/baseline.sql)
 - [baseline_snapshot](./database/postgres/experiments/lab_04/baseline_snapshot_table.sql)
 
 #### Overlap (evidence 2-6)
+
 - [030_expand_product_identity](./database/postgres/migrations/030_expand_product_identity.sql)
 - [product_code_trigger](./database/postgres/experiments/lab_04/product_code_trigger.sql)
 - [old_writer](./database/postgres/experiments/lab_04/old_writer_step4.sql)
@@ -41,13 +48,16 @@ Setup and reset instructions: [Setup & Reset](./docs/setup-and-reset.md)
 - [new_reader](./database/postgres/experiments/lab_04/new_reader.sql)
 
 #### Backfill (evidence 7)
+
 - [031_backfill_ticket_product](./database/postgres/migrations/031_backfill_ticket_product.sql)
 
 #### Late ticket + checks (evidence 8)
+
 - [old_writer_step8](./database/postgres/experiments/lab_04/old_writer_step8.sql)
 - [verify](./database/postgres/experiments/lab_04/verify.sql)
 
 #### Contract (evidence 9-10)
+
 - [032_make_product_id_required_reference](./database/postgres/migrations/032_make_product_id_required_reference.sql)
 - [old_writer_step9](./database/postgres/experiments/lab_04/old_writer_step9.sql) (rejected)
 - [033_drop_product_code](./database/postgres/migrations/033_drop_product_code.sql)
@@ -55,19 +65,23 @@ Setup and reset instructions: [Setup & Reset](./docs/setup-and-reset.md)
 - [new_writer_step10](./database/postgres/experiments/lab_04/new_writer_step10.sql)
 
 #### Price and currency (evidence 11)
+
 - [baseline_snapshot](./database/postgres/experiments/lab_04/baseline_snapshot_table.sql)
 - [compare_price_and_valuta](./database/postgres/experiments/lab_04/compare_price_and_valuta.sql)
 
 ## Two decisions worth discussing
 
 ### Reporting
+
 1. **Valg**
-[captured_revenue_for_day(operator_id, date)](./database/postgres/migrations/020_reporting_function.sql)
+   [captured_revenue_for_day(operator_id, date)](./database/postgres/migrations/020_reporting_function.sql)
+
 - Funktion: alle kalder det samme, får samme data, og
-  læser data direkte fra `payments`, hvilket betyder at alle callers 
+  læser data direkte fra `payments`, hvilket betyder at alle callers
   bruger samme SQL, og der findes ingen kopi som kan blive stale.
 
 2. **Alternativ**
+
 - Materialized view: billigere reads, men stale indtil refresh. Det er dog ok,
   fordi reporting gerne må være eventual jf. access patterns, så MV vil måske være det
   næste, hvis read cost bliver et problem. Refresh i en trigger på `payments` er dog ikke
@@ -75,23 +89,44 @@ Setup and reset instructions: [Setup & Reset](./docs/setup-and-reset.md)
   det betalingen tilbage.
 - Trigger table: data bliver ikke stale ved inserts, men det håndterer ikke at der skiftes
   payment status, så det kan være forkert uden at man opdager det.
+
 3. **Hvorfor**
+
 - `payments` er authority, og funktionen læser direkte fra den.
 - Reporting er per operator, og det tager funktionen som parameter.
   MV skulle filtreres på igen eller vedligeholdes per operator.
 - Read cost er ikke et problem endnu.
 
 4. **Evidens**
+
 - [lab3-reporting](./database/postgres/experiments/lab_03/lab3-reporting.md)
 
-### route_stops key
-1. Valg
-2. Alternativ
-3. Hvorfor det passer
-4. Fil
-For each: What did we choose? What was the alternative?
-Why does our choice fit MobilityTicketing? Which file or result supports it?
+### Partial Unique index på payments
+
+1. **Valg**
+- `UNIQUE INDEX payments_external_reference_unique ON payments (external_payment_reference) WHERE status IN ('Captured', 'Refunded')`
+
+- [011_ticketing_integrity](./database/postgres/migrations/011_ticketing_integrity.sql)
+
+2. **Alternativ**
+
+- a. Almindelig UNIQUE på kolonnen.
+- b. Ingen constraint, og check i appen.
+
+3. **Hvorfor**
+
+- Hvis en gateway sender betaling to gange, må det ikke kunne give dobbelt revenue.
+  En betaling der fejler, skal kunne retries med samme reference, det kan a ikke hvis der er unique på `Failed`
+
+  Alternativ b kan føre til race condition, hvis begge betalingerne forsøger at gøre det concurrent.
+
+4. **Evidens**
+
+- I [lab3-reporting](./database/postgres/experiments/lab_03/lab3-reporting.md) state 6, bliver en diplicate Captured
+  afvist med 23505. 
+- [payment_retry](./database/postgres/experiments/lab_02/payment-retry.sql)
 
 ## One limitation or open question
+
 What does our implementation not guarantee, or what are we still unsure about?
 Point to the relevant evidence. State what we would check next.
