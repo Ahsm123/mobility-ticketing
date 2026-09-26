@@ -104,7 +104,9 @@ Setup and reset instructions: [Setup & Reset](./docs/setup-and-reset.md)
 ### Partial Unique index på payments
 
 1. **Valg**
-- `UNIQUE INDEX payments_external_reference_unique ON payments (external_payment_reference) WHERE status IN ('Captured', 'Refunded')`
+
+-
+`UNIQUE INDEX payments_external_reference_unique ON payments (external_payment_reference) WHERE status IN ('Captured', 'Refunded')`
 
 - [011_ticketing_integrity](./database/postgres/migrations/011_ticketing_integrity.sql)
 
@@ -123,10 +125,29 @@ Setup and reset instructions: [Setup & Reset](./docs/setup-and-reset.md)
 4. **Evidens**
 
 - I [lab3-reporting](./database/postgres/experiments/lab_03/lab3-reporting.md) state 6, bliver en diplicate Captured
-  afvist med 23505. 
+  afvist med 23505.
 - [payment_retry](./database/postgres/experiments/lab_02/payment-retry.sql)
 
 ## One limitation or open question
 
-What does our implementation not guarantee, or what are we still unsure about?
-Point to the relevant evidence. State what we would check next.
+### Ticket validation
+
+- Som det er nu, kan en SINGLE billet godt valideres flere gange. Validations har ikke en constraint
+  som forhindrer to accepted rows for samme ticket. Grunden til det ikke løst er, at antal valideringer, afhænger af
+  produktet, hvor SINGLE skal valideres én gang, og en DAY billet flere gange. Det er også antaget,
+  at i tog, skal en kontrollør kunne validerer on demand, så samme billet kan blive kontrolleret flere gange.
+  Hvis vi har en constraint på table niveau, ved jeg ikke lige hvordan den skal kende til både type af produkt
+  og transportmiddel.
+
+**Evidens:**
+
+- [integrity-map](./docs/integrity-map.md)
+- [011_ticketing_integrity](./database/postgres/migrations/011_ticketing_integrity.sql)
+  Der er ikke andre regler på Validations end FK og check på result.
+
+**Next**
+
+- Man kunne gøre så en SINGLE billet, når den valideres, skifter status fra Active til Validated,
+  men kun hvis den er Active. Hvis den allerede er validated, sker der ingenting, og så ved vi at den er brugt.
+- Hvis man antager at det er korrekt opførsel, at DAY billetten må valideres flere gange, skal man finde ud af,
+  om reglen skal være i databasen, eller i den app der validerer billetter.
