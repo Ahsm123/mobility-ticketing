@@ -93,11 +93,11 @@ $$;
 DO
 $$
     BEGIN
-        INSERT INTO tickets (id, user_id, trip_id, ticket_code, status, product_code,
+        INSERT INTO tickets (id, user_id, trip_id, ticket_code, status, product_id,
                              valid_from_utc, valid_to_utc, price, currency)
-        VALUES ('TICKET-4', 'USER-1', 'TRIP-M2-20260429-0800', 'CODE-M2-0002', 'Active', '',
+        VALUES ('TICKET-4', 'USER-1', 'TRIP-M2-20260429-0800', 'CODE-M2-0002', 'Active', gen_random_uuid(),
                 '2026-04-29 07:45:00+00', '2026-04-29 10:00:00+00', 36.00, 'DKK');
-        RAISE EXCEPTION 'expected tickets_product_code_fk to be rejected, but it was accepted';
+        RAISE EXCEPTION 'expected tickets_product_id_fk to be rejected, but it was accepted';
     EXCEPTION
         WHEN foreign_key_violation THEN
             IF SQLSTATE <> '23503' THEN
@@ -145,9 +145,10 @@ $$;
 DO
 $$
     BEGIN
-        insert into tickets (id, user_id, trip_id, ticket_code, status, product_code,
+        insert into tickets (id, user_id, trip_id, ticket_code, status, product_id,
                              valid_from_utc, valid_to_utc, price, currency)
-        values ('TICKET-5', 'USER-1', 'TRIP-M2-20260429-0800', 'CODE-M2-0001', 'Active', 'SINGLE',
+        values ('TICKET-5', 'USER-1', 'TRIP-M2-20260429-0800', 'CODE-M2-0001', 'Active',
+                (select id from products where code = 'SINGLE'),
                 '2026-04-29 07:45:00+00', '2026-04-29 10:00:00+00', 36.00, 'DKK');
         RAISE EXCEPTION 'expected tickets_ticket_code_unique to be rejected, but it was accepted';
     EXCEPTION
@@ -157,6 +158,25 @@ $$
             END IF;
             RAISE NOTICE 'ok: tickets code unique %', SQLSTATE;
     END
+$$;
+
+-- Rule 8: Ticket validity cant end before it begins
+DO 
+$$
+    BEGIN
+        insert into tickets (id, user_id, trip_id, ticket_code, status, product_id,
+                             valid_from_utc, valid_to_utc, price, currency)
+        values ('TICKET-5', 'USER-1', 'TRIP-M2-20260429-0800', 'CODE-M2-9999', 'Active',
+                (select id from products where code = 'SINGLE'),
+                '2026-04-29 07:45:00+00', '2026-04-29 07:44:00+00', 36.00, 'DKK');
+        RAISE EXCEPTION 'expected tickets_valid_period to be rejected, but it was accepted';
+    EXCEPTION
+        WHEN check_violation THEN
+            IF SQLSTATE <> '23514' THEN
+                RAISE EXCEPTION 'wrong SQLSTATE: got %', SQLSTATE;
+            END IF;
+            RAISE NOTICE 'ok: tickets valid period rejected with %', SQLSTATE;
+    END 
 $$;
 
 
