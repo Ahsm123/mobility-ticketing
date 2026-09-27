@@ -176,7 +176,48 @@ $$
                 RAISE EXCEPTION 'wrong SQLSTATE: got %', SQLSTATE;
             END IF;
             RAISE NOTICE 'ok: tickets valid period rejected with %', SQLSTATE;
-    END 
+    END
+$$;
+
+-- Rule 13: Currency must be ISO 4217 format, 'dkk' breaks casing, 'DK' breaks length
+DO
+$$
+    DECLARE
+        bad_currency text;
+    BEGIN
+        FOREACH bad_currency IN ARRAY ARRAY ['dkk', 'DK']
+            LOOP
+                BEGIN
+                    UPDATE products
+                    SET currency = bad_currency
+                    WHERE code = 'SINGLE';
+                    RAISE EXCEPTION 'expected products_currency_iso4217 to reject %, but it was accepted', bad_currency;
+                EXCEPTION
+                    WHEN check_violation THEN
+                        IF SQLSTATE <> '23514' THEN
+                            RAISE EXCEPTION 'wrong SQLSTATE: got %', SQLSTATE;
+                        END IF;
+                        RAISE NOTICE 'ok: currency % rejected with %', bad_currency, SQLSTATE;
+                END;
+            END LOOP;
+    END
+$$;
+
+-- Positive
+DO
+$$
+    BEGIN
+        BEGIN
+            UPDATE products
+            SET currency = 'EUR'
+            WHERE code = 'SINGLE';
+            RAISE NOTICE 'ok: currency EUR valid';
+        EXCEPTION
+            WHEN check_violation THEN
+                RAISE EXCEPTION 'expected to be accepted but was rejected %', SQLSTATE;
+        END;
+        ROLLBACK;
+    END
 $$;
 
 
