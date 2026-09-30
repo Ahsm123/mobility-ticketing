@@ -9,6 +9,7 @@ Setup and reset instructions: [Setup & Reset](./docs/setup-and-reset.md)
 ### Lecture 1: model, workload map and queries:
 
 - [access-patterns](./docs/access-patterns.md)
+- [dossier](./docs/dossier.md) (assumptions and functional dependency)
 - [ERD](./docs/diagrams/ERD_2.jpg)
 - [001_relational_baseline](./database/postgres/init/001_relational_baseline.sql)
 - [002_seed](./database/postgres/init/002_seed.sql)
