@@ -416,3 +416,15 @@ Før split skulle der opdateres 2 docs, A og C, og det var på et element i et A
 Efter skal der stadig opdateres 2 docs, men feltet kan opdateres direkte.
 
 Der er stadig 2, fordi man kan finde samme departure på forskellige destinationer.
+
+## 7. Compare the two models
+
+- Den alternative model fjernede behovet for `$unwind` og nesting på departures.
+- Der bliver noget duplikering af det data der lå på journey niveau, men resten er det samme.
+- Opdateringen af en departure er den samme, da den også var flere steder i model 1, dog skal der opdateres mere på journey, men det skulle være trivielt med `updateMany`.
+- Collection fylder mere i model 2, men nu vokser ét dokument ikke ubegrænset, der kommer bare flere.
+- Derudover er det også nemmere at flytte departures når de er kørt, fordi vi kan filtrere på `departureUtc` direkte, og ikke skal gøre det på arrays.
+
+### Valg
+
+Model 2, fordi den ikke rammer 16 MB loftet, og fordi den er simplere at arbejde med. Vi har en strategi for at håndtere pladsen, derfor er den ekstra kompleksitet ikke det værd.
