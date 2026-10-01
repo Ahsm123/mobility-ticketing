@@ -1,15 +1,13 @@
 const m = db.getSiblingDB("mobility");
 
 printjson(
-    m.journey_search.updateMany(
+    m.journey_search_by_trip.updateMany(
         {
-            _id: /^LAB05:/,
-            cityId: "CPH",
-            routeId: "LINE-M2",
+            tripId: 'LAB05-T-OK'
         },
         {
             $set: {
-                "price": Decimal128('40.00'),
+                status: "Cancelled",
             },
         },
     ),
