@@ -1,7 +1,7 @@
 const m = db.getSiblingDB("mobility");
 
-const start = ISODate("2026-10-03T06:00:00Z");
-const end = ISODate("2026-10-03T05:00:00Z");
+const start = ISODate("2026-10-02T07:00:00Z");
+const end = ISODate("2026-10-02T08:00:00Z");
 
 function search(cityId, fromStopId, toStopId, start, end) {
     if (end <= start) {
