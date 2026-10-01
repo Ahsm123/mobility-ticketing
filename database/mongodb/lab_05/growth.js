@@ -9,14 +9,14 @@ const growth = {
   _id: "LAB05:GROWTH",
 };
 
-growth.departures = Array.from({ length: 100 }, (_, i) => ({
+growth.departures = Array.from({ length: 1000 }, (_, i) => ({
   ...original.departures[0],
   tripId: `LAB05-GROWTH-${i}`,
 }));
 
 m.journey_search.deleteOne({ _id: "LAB05:GROWTH" });
 
-// TODO: insert growth into journey_search.
+m.journey_search.insertOne(growth);
 
 printjson(
   m.journey_search.aggregate([

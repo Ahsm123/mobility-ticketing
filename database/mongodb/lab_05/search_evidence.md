@@ -220,8 +220,8 @@ Fixture resat før kørsel.
 
 ```js
 m.journey_search.updateMany(
-  { _id: /^LAB05:/, cityId: "CPH", routeId: "LINE-M2" },
-  { $set: { price: Decimal128("40.00") } },
+    {_id: /^LAB05:/, cityId: "CPH", routeId: "LINE-M2"},
+    {$set: {price: Decimal128("40.00")}},
 );
 ```
 
@@ -240,3 +240,30 @@ m.journey_search.updateMany(
 
 - D har en anden cityId og B har anden routeId
 - Line-M2 findes i flere byer, så routeId er kun unik per by.
+
+# 5
+
+m.journey_search.insertOne(growth); 
+
+output 100:
+{
+bytes: 12307,
+departures: 100
+}
+
+output 1000:
+{
+bytes: 123007,
+departures: 1000
+}
+
+For at holde mængden nede:
+- Størrelsen vokser lineært med antallet af afgange over tid, mongo har en grænse på 16MB pr. document,
+  som ville være ~ 130081 (16000000/123)
+    
+- Ville ikke slette data, men rutinemæssigt flytte de afgange som er kørt til cold storage, så det ikke akkumulerer.
+- Alternativt flytte dem til en anden collection efter de er kørt, så de ikke koster read compute når vi skal søge i dem.
+
+Der er to spørgsmål her:
+1. Hvad der skal flyttes, som er afgange der allerede er kørt.
+2. Hvor tit det skal flyttes, afhænger af hvor hurtigt afgangene ophober sig.
