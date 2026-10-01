@@ -70,4 +70,68 @@
    const end = ISODate("2026-10-03T05:00:00Z");
 
    Error: end cant be before start
+
+## Search bug:
+
+const m = db.getSiblingDB("mobility");
+const start = ISODate("2026-10-02T06:00:00Z");
+const end = ISODate("2026-10-02T07:00:00Z");
+
+const query = {
+cityId: "CPH",
+fromStopId: "STOP-NORREPORT",
+toStopId: "STOP-AIRPORT",
+departures: {
+$elemMatch: {status: "Scheduled", departureUtc: {$gte: start, $lt: end}}
+}
+// TODO: add departures.departureUtc
+// as a separate condition.
+};
+
+printjson(m.journey_search.find(query).toArray()
+)
+
+- Output:
+  {
+  _id: 'LAB05:A',
+  cityId: 'CPH',
+  routeId: 'LINE-M2',
+  fromStopId: 'STOP-NORREPORT',
+  toStopId: 'STOP-AIRPORT',
+  serviceDate: '2026-10-02',
+  schemaVersion: 1,
+  price: Decimal128('36.00'),
+  currency: 'DKK',
+  departures: [
+  {
+  tripId: 'LAB05-T-EARLY',
+  departureUtc: ISODate('2026-10-02T05:50:00.000Z'),
+  arrivalUtc: ISODate('2026-10-02T06:10:00.000Z'),
+  availableSeats: 10,
+  status: 'Scheduled'
+  },
+  {
+  tripId: 'LAB05-T-CANCEL',
+  departureUtc: ISODate('2026-10-02T06:10:00.000Z'),
+  arrivalUtc: ISODate('2026-10-02T06:30:00.000Z'),
+  availableSeats: 10,
+  status: 'Cancelled'
+  },
+  {
+  tripId: 'LAB05-T-OK',
+  departureUtc: ISODate('2026-10-02T06:20:00.000Z'),
+  arrivalUtc: ISODate('2026-10-02T06:40:00.000Z'),
+  availableSeats: 10,
+  status: 'Scheduled'
+  },
+  {
+  tripId: 'LAB05-T-EDGE',
+  departureUtc: ISODate('2026-10-02T07:00:00.000Z'),
+  arrivalUtc: ISODate('2026-10-02T07:20:00.000Z'),
+  availableSeats: 10,
+  status: 'Scheduled'
+  }
+  ]
+  }
+
    
