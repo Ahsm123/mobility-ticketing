@@ -1,14 +1,44 @@
 using System.Text.Json;
+using StackExchange.Redis;
 
+var options = ConfigurationOptions.Parse("127.0.0.1:6379");
+options.AbortOnConnectFail = false;
+options.ConnectTimeout = 500;
+options.AsyncTimeout = 500;
+options.ConnectRetry = 1;
+// Fail commands immediately while disconnected instead of waiting in the backlog (~5 s).
+options.BacklogPolicy = BacklogPolicy.FailFast;
+
+using var redis = await ConnectionMultiplexer.ConnectAsync(options);
 var source = new MongoJourneySearch();
+var ttl = TimeSpan.FromSeconds(20);
+
+var cachedSearch = new CachedJourneySearch(source, redis.GetDatabase(), ttl);
 var request = new SearchRequest("CPH", "STOP-NORREPORT", "STOP-AIRPORT",
     DateTimeOffset.Parse("2026-10-02T06:00:00Z"),
     DateTimeOffset.Parse("2026-10-02T07:00:00Z"));
 
-var result = await source.Fetch(request);
-Console.WriteLine(JsonSerializer.Serialize(result, new JsonSerializerOptions(JsonSerializerDefaults.Web)));
-Console.WriteLine($"MongoDB calls: {source.Calls}");
-// Next: replace the direct Fetch call with your cached search.
+// Morning search (one result) and evening search (empty result), each twice:
+// expect miss, then hit, with one MongoDB call per search.
+var emptyRequest = request with
+{
+    Start = DateTimeOffset.Parse("2026-10-02T18:00:00Z"),
+    End = DateTimeOffset.Parse("2026-10-02T19:00:00Z")
+};
+foreach (var search in new[] { request, request, emptyRequest, emptyRequest })
+{
+    var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+    try
+    {
+        var result = await cachedSearch.Search(search);
+        Console.WriteLine(JsonSerializer.Serialize(result, new JsonSerializerOptions(JsonSerializerDefaults.Web)));
+    }
+    catch (InvalidOperationException ex)
+    {
+        Console.WriteLine(ex.Message);
+    }
+    Console.WriteLine($"MongoDB calls: {source.Calls}, time: {stopwatch.ElapsedMilliseconds} ms");
+}
 
 // Morning and evening searches
 var morningKey = CacheKey.Build(request);

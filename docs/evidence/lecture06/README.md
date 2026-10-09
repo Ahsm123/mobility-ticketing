@@ -42,7 +42,6 @@ OK
 | Without cache 18:00–19:00 | -                                              | `[]`                   |
 | Redis for 18:00–19:00     | `search:LAB06:CPH:STOP-NORREPORT:STOP-AIRPORT` | `[LAB05-T-OK]` (wrong) |
 
-
 ### Why did the incomplete key allow the evening search to receive the morning result?
 
 The cached key did not contain the start and end time, only the stop IDs, and Redis only stores
@@ -103,3 +102,77 @@ A / B:C:   search:LAB06:v2:CPH:A:B%3AC:2026-10-02T06:00:00.0000000Z:2026-10-02T0
 `08:00+02:00` is the same instant as `06:00Z`, so both become `06:00:00.0000000Z` in the key. Without
 `EscapeDataString`, both stop pairs would become `A:B:C` and share a key. Escaping turns the `:` inside an
 ID into `%3A`, so the two keys stay different.
+
+## 3 Cache the journey search
+
+[CachedJourneySearch.cs](../../../database/redis/lecture06/CacheLab/CachedJourneySearch.cs) wraps the MongoDB search
+with cache-aside: build key > Redis `GET` > on miss/invalid/unavailable call MongoDB > `SET` with a 20 s TTL.
+
+Cache value:
+
+    {
+
+        schemaVersion:2,
+
+        cachedAtUtc:"...",
+
+        items":[...]
+
+    }
+
+Anything else counts as `invalid`.
+
+### 3.1 Miss, then hit
+
+Morning search twice, evening search (empty result) twice:
+
+```
+miss                              MongoDB calls: 1
+hit   [LAB05-T-OK]                MongoDB calls: 1
+miss                              MongoDB calls: 2
+hit   []                          MongoDB calls: 2
+```
+
+The empty result is cached too:
+`{"schemaVersion":2,"cachedAtUtc":"2026-10-09T09:37:06.6642231+00:00","items":[]}`
+
+### 3.2 Invalid cached values
+
+| Value in Redis              | Output            | MongoDB calls |
+|-----------------------------|-------------------|---------------|
+| `invalid`                   | `invalid` > `hit` | 1             |
+| `schemaVersion: 1`          | `invalid` > `hit` | 1             |
+| `items: "x"`                | `invalid` > `hit` | 1             |
+| `items: [{"cityId":"CPH"}]` | `invalid` > `hit` | 1             |
+
+Invalid is treated as a miss, and `SET` overwrites the bad value.
+
+### 3.3 Expiry
+
+| Run             | Output         | TTL after |
+|-----------------|----------------|-----------|
+| 1 (empty cache) | `miss` > `hit` | 20        |
+| 2 (2 s later)   | `hit` > `hit`  | 18        |
+| 20 s later      | key expired    | -2        |
+
+Reads do not renew the TTL.
+
+### 3.4 Redis unavailable
+
+| Version                                 | Output                                    | Time (4 searches) |
+|-----------------------------------------|-------------------------------------------|-------------------|
+| First                                   | `cache unavailable`, `cache write failed` | 45.5 s            |
+| `FailFast` + no write after failed read | `cache unavailable`                       | 2.3 s             |
+
+Correct results both times, but `AsyncTimeout = 500` did not limit the wait: StackExchange.Redis held commands in
+its backlog for ~5 s, once for the read and once for the write. `BacklogPolicy.FailFast` fails immediately, and the
+write is skipped because Redis just failed.
+
+### 3.5 MongoDB unavailable
+
+```
+miss
+search error: MongoDB search failed
+```
+
+A search error, not `[]`, so a failure is not mistaken for "no departures".
