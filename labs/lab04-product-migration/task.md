@@ -14,10 +14,10 @@ Create a branch, then run these commands from the repository root to start your 
 git switch -c product-identity-lab
 docker compose up -d
 docker compose ps
-docker compose exec -T postgres psql -U mobility -d mobility -v ON_ERROR_STOP=1 < database/postgres/experiments/lecture04/baseline.sql
+docker compose exec -T postgres psql -U mobility -d mobility -v ON_ERROR_STOP=1 < labs/lab04-product-migration/baseline.sql
 ```
 
-Check that you have three tickets covering two products and that every ticket refers to an existing product. Save the ticket IDs, product codes, prices and currencies so you can compare them later. Leave `database/postgres/init/` unchanged.
+Check that you have three tickets covering two products and that every ticket refers to an existing product. Save the ticket IDs, product codes, prices and currencies so you can compare them later. Leave `postgres/init/` unchanged.
 
 If you are continuing in your own repository, use your earlier migrations and load at least three valid tickets covering two products. Check whether your reporting views or functions from lecture 3 use the columns you will change.
 
@@ -28,7 +28,7 @@ Before running a migration, check its nullable columns, keys, backfill and any s
 Run your scripts from the repository root, for example:
 
 ```bash
-docker compose exec -T postgres psql -U mobility -d mobility -v ON_ERROR_STOP=1 < database/postgres/migrations/030_expand_product_identity.sql
+docker compose exec -T postgres psql -U mobility -d mobility -v ON_ERROR_STOP=1 < postgres/migrations/030_expand_product_identity.sql
 ```
 
 Use the same command pattern for each file. Run each DDL migration once, in order. The backfill should be safe to repeat. If a statement fails inside a transaction, roll it back before continuing.
@@ -52,7 +52,7 @@ Before dropping `tickets.product_code`, switch to readers and writers that use o
 
 ## What to record
 
-Keep your SQL, commands and important results in `docs/evidence/lecture04/README.md`. Show the failures as well as the successful runs, and check that the original tickets still have the same products, prices and currencies.
+Keep your SQL, commands and important results in `labs/lab04-product-migration/README.md`. Show the failures as well as the successful runs, and check that the original tickets still have the same products, prices and currencies.
 
 Add a small table showing which inserts and queries work before expansion, after expansion, once the ID is required, and after the old column is removed. Note any query that runs but misses tickets.
 

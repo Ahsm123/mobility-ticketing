@@ -9,7 +9,7 @@
 - Starter fra tom db: `docker compose down -v` og `docker compose up -d`
 - Migreringer kørt før baseline: 011, 020, 021, 022
 - Scripts i `experiments/` køres med:
-  `docker compose exec -T postgres psql -U mobility -d mobility < database/postgres/experiments/lab_04/<fil>.sql`
+  `docker compose exec -T postgres psql -U mobility -d mobility < labs/lab04-product-migration/<fil>.sql`
 
 ## 1. Baseline
 

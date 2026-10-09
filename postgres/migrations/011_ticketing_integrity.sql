@@ -1,4 +1,4 @@
--- docker compose exec -T postgres psql -U mobility -d mobility < database/postgres/migrations/[migration file]
+-- docker compose exec -T postgres psql -U mobility -d mobility < postgres/migrations/[migration file]
 
 BEGIN;
 

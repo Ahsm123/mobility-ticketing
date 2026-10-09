@@ -21,7 +21,7 @@ docker compose up -d
 docker compose ps
 ```
 
-Run the base query in [`../database/postgres/queries/base_revenue.sql`](../database/postgres/queries/base_revenue.sql) and save its result. Do not edit the files in `database/postgres/init/`.
+Run the base query in [`../postgres/queries/base_revenue.sql`](../../postgres/queries/base_revenue.sql) and save its result. Do not edit the files in `postgres/init/`.
 
 ## Tasks
 
@@ -42,9 +42,9 @@ Run the base query in [`../database/postgres/queries/base_revenue.sql`](../datab
 The migration examples identify the intended object names. Complete them in dependency order and apply them from the repository root:
 
 ```bash
-docker compose exec -T postgres psql -U mobility -d mobility < database/postgres/migrations/020_reporting_function.sql
-docker compose exec -T postgres psql -U mobility -d mobility < database/postgres/migrations/021_daily_revenue_trigger.sql
-docker compose exec -T postgres psql -U mobility -d mobility < database/postgres/migrations/022_daily_captured_revenue.sql
+docker compose exec -T postgres psql -U mobility -d mobility < postgres/migrations/020_reporting_function.sql
+docker compose exec -T postgres psql -U mobility -d mobility < postgres/migrations/021_daily_revenue_trigger.sql
+docker compose exec -T postgres psql -U mobility -d mobility < postgres/migrations/022_daily_captured_revenue.sql
 ```
 
 Use a clean container when you need to repeat the experiment:

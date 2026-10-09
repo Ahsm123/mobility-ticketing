@@ -51,17 +51,17 @@ morning result without asking Mongo.
 
 ## 2.5. Build a complete key
 
-[CacheKey.cs](../../../database/redis/lecture06/CacheLab/CacheKey.cs) builds the key as
+[CacheKey.cs](./CacheLab/CacheKey.cs) builds the key as
 `search:LAB06:v2:{city}:{from}:{to}:{start}:{end}`. Each ID goes through `Uri.EscapeDataString`, and both
 times are converted to UTC in ISO 8601 (`"O"`). Empty IDs and an end time that is not after the start
 throw an `ArgumentException`.
 
 ### 2.6 Check the key function
 
-The checks are in [Program.cs](../../../database/redis/lecture06/CacheLab/Program.cs). Run them with:
+The checks are in [Program.cs](./CacheLab/Program.cs). Run them with:
 
 ```
-dotnet run --project database/redis/lecture06/CacheLab
+dotnet run --project labs/lab06-redis-cache/CacheLab
 ```
 
 | Test                                   | Expected       | Result         |
@@ -105,7 +105,7 @@ ID into `%3A`, so the two keys stay different.
 
 ## 3 Cache the journey search
 
-[CachedJourneySearch.cs](../../../database/redis/lecture06/CacheLab/CachedJourneySearch.cs) wraps the MongoDB search
+[CachedJourneySearch.cs](./CacheLab/CachedJourneySearch.cs) wraps the MongoDB search
 with cache-aside: build key > Redis `GET` > on miss/invalid/unavailable call MongoDB > `SET` with a 20 s TTL.
 
 Cache value:

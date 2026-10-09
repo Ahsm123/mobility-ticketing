@@ -14,7 +14,7 @@ Approximately 90 minutes.
 2. Decide the primary key of the route-stop relation and explain the decision.
 3. Add primary-key and foreign-key relationships.
 4. Insert the supplied seed data.
-5. Write the three workload queries in `database/postgres/003_queries.sql.example`.
+5. Write the three workload queries in `postgres/003_queries.sql.example`.
 6. Compare the implemented schema with your ER diagram and record any difference.
 
 ## Workload queries
@@ -42,4 +42,4 @@ Do not add MongoDB, Redis, caching, event queues, payment logic, validation logi
 - [ ] Include identifiers, relationships, and cardinalities in the ER diagram.
 - [ ] Explain one functional dependency and what normalization prevents.
 - [ ] State what the implementation proves and what remains unknown.
-- [ ] Commit the implementation under `database/postgres/`.
+- [ ] Commit the implementation under `postgres/`.

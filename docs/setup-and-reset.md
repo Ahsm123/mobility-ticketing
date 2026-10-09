@@ -30,14 +30,14 @@ docker compose up -d
 Migrations are not auto run. Apply them one at a time in order:
 
 ```bash
-docker compose exec -T postgres psql -U mobility -d mobility < database/postgres/migrations/011_ticketing_integrity.sql
+docker compose exec -T postgres psql -U mobility -d mobility < postgres/migrations/011_ticketing_integrity.sql
 ```
 
 Order: `011`, `020`, `021`, `022`, `030`, `031`, `032`, `033`.
 
 To replay Lab 4 with the old/new reader and writer scripts between the
 migrations, follow the steps in
-[evidence.md](../database/postgres/experiments/lab_04/evidence.md) instead.
+[evidence.md](../labs/lab04-product-migration/README.md) instead.
 
 ## Run the tests
 
@@ -52,14 +52,14 @@ Every test prints `ok:`. Any other error means the test failed.
 
 ## Project layout
 
-- `database/postgres/init/` - baseline schema and seed data. Runs once
+- `postgres/init/` - baseline schema and seed data. Runs once
   auto, when Postgres starts and volume is empty.
-- `database/postgres/migrations/` - every schema change since the baseline in order.
-- `database/postgres/queries/` - reference queries.
-- `database/postgres/tests/` - the integrity test suite.
-- `database/postgres/experiments/` - per lab scripts and evidence
-  (`lab_02/`, `lab_03/`, `lab_04/`).
-- `docs/` - `dossier.md` (assumptions, rules, decisions), `integrity-map.md`
-  (invariants, issue register), `access-patterns.md` (workload table),
-  `lab_descriptions/` (lab briefs), `diagrams/`.
+- `postgres/migrations/` - every schema change since the baseline in order.
+- `postgres/queries/` - reference queries.
+- `postgres/tests/` - the integrity test suite.
+- `labs/labNN-*/` - one folder per lab: `task.md` (brief), `README.md`
+  (evidence) and the lab's scripts.
+- `docs/model/` - `dossier.md` (assumptions, rules, decisions), `integrity-map.md`
+  (invariants, issue register), `access-patterns.md` (workload table), `diagrams/`.
+- `docs/ca1-review.md` - Compulsory Assignment 1 review guide.
 
