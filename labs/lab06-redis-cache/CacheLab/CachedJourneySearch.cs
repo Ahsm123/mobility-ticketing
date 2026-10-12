@@ -8,7 +8,7 @@ public class CachedJourneySearch(MongoJourneySearch source, IDatabase redis, Tim
     const int SchemaVersion = 2;
     static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
 
-    public async Task<List<Journey>> Search(SearchRequest request)
+    public async Task<(List<Journey> Items, string Source)> Search(SearchRequest request)
     {
         var key = CacheKey.Build(request);
         var cacheAvailable = true;
@@ -16,17 +16,10 @@ public class CachedJourneySearch(MongoJourneySearch source, IDatabase redis, Tim
         try
         {
             var cached = await redis.StringGetAsync(key);
-            if (cached.IsNull)
+            if (!cached.IsNull)
             {
-                Console.WriteLine("miss");
-            }
-            else if (ReadCache(cached!) is { } items)
-            {
-                Console.WriteLine("hit");
-                return items;
-            }
-            else
-            {
+                if (ReadCache(cached!) is { } items)
+                    return (items, "Redis");
                 Console.WriteLine("invalid");
             }
         }
@@ -48,7 +41,7 @@ public class CachedJourneySearch(MongoJourneySearch source, IDatabase redis, Tim
 
         // Redis just failed on read, so a write would most likely only add another wait.
         if (!cacheAvailable)
-            return result;
+            return (result, "MongoDB");
 
         try
         {
@@ -60,7 +53,7 @@ public class CachedJourneySearch(MongoJourneySearch source, IDatabase redis, Tim
             Console.WriteLine("cache write failed");
         }
 
-        return result;
+        return (result, "MongoDB");
     }
 
     // Returns null when the cached value is not a valid cache entry.

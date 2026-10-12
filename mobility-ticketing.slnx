@@ -1,0 +1,6 @@
+<Solution>
+  <Folder Name="/labs/" />
+  <Folder Name="/labs/lab06-redis-cache/">
+    <Project Path="labs/lab06-redis-cache/CacheLab/CacheLab.csproj" />
+  </Folder>
+</Solution>

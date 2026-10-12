@@ -58,7 +58,7 @@ throw an `ArgumentException`.
 
 ### 2.6 Check the key function
 
-The checks are in [Program.cs](./CacheLab/Program.cs). Run them with:
+The checks are in [KeyTests.cs](./CacheLab/KeyTests.cs). Run them with:
 
 ```
 dotnet run --project labs/lab06-redis-cache/CacheLab
@@ -122,6 +122,10 @@ Cache value:
 
 Anything else counts as `invalid`.
 
+The `miss` / `hit` output below was printed by `Search` when these runs were made. `Search` now returns the
+data source instead (`Redis` or `MongoDB`, see section 4) and no longer prints `miss` / `hit`. `invalid`,
+`cache unavailable` and `cache write failed` are still printed.
+
 ### 3.1 Miss, then hit
 
 Morning search twice, evening search (empty result) twice:
@@ -176,3 +180,67 @@ search error: MongoDB search failed
 ```
 
 A search error, not `[]`, so a failure is not mistaken for "no departures".
+
+## 4 Test the cached search
+
+The tests are in [SearchTests.cs](./CacheLab/SearchTests.cs). `Search` returns the data source (`Redis` or
+`MongoDB`), and MongoDB calls are counted separately as the change in `source.Calls` around each search, so the
+two checks do not depend on each other. The stopwatch only covers `Search`.
+
+### 4.1 Test A: repeat a search
+
+The exact morning key is deleted first, then the morning search runs twice within the 20 s TTL.
+
+| Run | Data source | Trip IDs       | MongoDB calls | Time |
+|-----|-------------|----------------|---------------|------|
+| 1   | MongoDB     | `[LAB05-T-OK]` | 1             | 3 ms |
+| 2   | Redis       | `[LAB05-T-OK]` | 0             | 1 ms |
+
+Key: `search:LAB06:v2:CPH:STOP-NORREPORT:STOP-AIRPORT:2026-10-02T06:00:00.0000000Z:2026-10-02T07:00:00.0000000Z`
+
+The first search misses and calls MongoDB. The second is served from Redis with the same trip IDs and no extra
+MongoDB call.
+
+### 4.2 Test B: cache an empty result
+
+Same test as A, but with a search that returns no journeys: 5/10 18:00–19:00. The key is deleted first, then the search
+runs twice within the 20 s TTL.
+
+| Run | Data source | Trip IDs | MongoDB calls | Time |
+|-----|-------------|----------|---------------|------|
+| 1   | MongoDB     | `[]`     | 1             | 2 ms |
+| 2   | Redis       | `[]`     | 0             | 0 ms |
+
+Key: `search:LAB06:v2:CPH:STOP-NORREPORT:STOP-AIRPORT:2026-10-05T18:00:00.0000000Z:2026-10-05T19:00:00.0000000Z`
+
+An empty result is a valid answer, so it is cached like any other but with no items. A missing key means nothing is
+cached. Without that difference every search with no departures would call MongoDB each time.
+
+### 4.3 Test C: expire a result
+
+Morning search through a second `CachedJourneySearch` with a 2 s TTL, so the test does not wait 20 s. The key is
+deleted first. Two searches, TTL read, 5 s wait, a third search, TTL read again.
+
+| Run        | Data source | Trip IDs       | MongoDB calls | TTL after |
+|------------|-------------|----------------|---------------|-----------|
+| 1          | MongoDB     | `[LAB05-T-OK]` | 1             |           |
+| 2          | Redis       | `[LAB05-T-OK]` | 0             | 1.998 s   |
+| (wait 5 s) |             |                |               |           |
+| 3          | MongoDB     | `[LAB05-T-OK]` | 1             | 1.996 s   |
+
+Run 2 shows the result was in the cache before the wait. Run 3 calls MongoDB again, so the key expired, and the TTL
+is back at almost 2 s, so the new result was saved with a new TTL instead of being kept alive.
+
+### 4.4 Test D: store an invalid value
+
+The test writes each invalid value under the morning key, then runs the
+morning search twice. Each value has only one fault:
+
+| Input               | Redis value                                        | Run 1                      | Run 2          |
+|---------------------|----------------------------------------------------|----------------------------|----------------|
+| Not JSON            | `not-json`                                         | `invalid`, MongoDB, 1 call | Redis, 0 calls |
+| Wrong schemaVersion | `{"schemaVersion":1,"cachedAtUtc":"…","items":[]}` | `invalid`, MongoDB, 1 call | Redis, 0 calls |
+| Missing items       | `{"schemaVersion":2,"cachedAtUtc":"…"}`            | `invalid`, MongoDB, 1 call | Redis, 0 calls |
+
+All runs returned `[LAB05-T-OK]`. Run 1 prints `invalid` and calls MongoDB, so the value was found and rejected. Run 2
+is a hit, so the `SET` after the MongoDB call replaced the invalid value.

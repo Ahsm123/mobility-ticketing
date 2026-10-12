@@ -1,4 +1,3 @@
-using System.Text.Json;
 using StackExchange.Redis;
 
 var options = ConfigurationOptions.Parse("127.0.0.1:6379");
@@ -18,60 +17,27 @@ var request = new SearchRequest("CPH", "STOP-NORREPORT", "STOP-AIRPORT",
     DateTimeOffset.Parse("2026-10-02T06:00:00Z"),
     DateTimeOffset.Parse("2026-10-02T07:00:00Z"));
 
-// Morning search (one result) and evening search (empty result), each twice:
-// expect miss, then hit, with one MongoDB call per search.
+Console.WriteLine("---------------------");
+Console.WriteLine("Key Tests:");
+Console.WriteLine("---------------------");
+new KeyTests(request).Run();
+Console.WriteLine("---------------------");
+Console.WriteLine("Cache Tests:");
+Console.WriteLine("---------------------");
+await new CacheTests(cachedSearch, source, request).Run();
+Console.WriteLine("---------------------");
+Console.WriteLine("Search Tests:");
+Console.WriteLine("---------------------");
+await new SearchTests(cachedSearch, source, redis.GetDatabase(), request).TestA();
+
 var emptyRequest = request with
 {
-    Start = DateTimeOffset.Parse("2026-10-02T18:00:00Z"),
-    End = DateTimeOffset.Parse("2026-10-02T19:00:00Z")
+    Start = DateTimeOffset.Parse("2026-10-05T18:00:00Z"),
+    End = DateTimeOffset.Parse("2026-10-05T19:00:00Z")
 };
-foreach (var search in new[] { request, request, emptyRequest, emptyRequest })
-{
-    var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-    try
-    {
-        var result = await cachedSearch.Search(search);
-        Console.WriteLine(JsonSerializer.Serialize(result, new JsonSerializerOptions(JsonSerializerDefaults.Web)));
-    }
-    catch (InvalidOperationException ex)
-    {
-        Console.WriteLine(ex.Message);
-    }
-    Console.WriteLine($"MongoDB calls: {source.Calls}, time: {stopwatch.ElapsedMilliseconds} ms");
-}
+await new SearchTests(cachedSearch, source, redis.GetDatabase(), emptyRequest).TestB();
 
-// Morning and evening searches
-var morningKey = CacheKey.Build(request);
-var evening = request with
-{
-    Start = DateTimeOffset.Parse("2026-10-02T18:00:00Z"),
-    End = DateTimeOffset.Parse("2026-10-02T19:00:00Z")
-};
-var eveningKey = CacheKey.Build(evening);
-Check(morningKey, eveningKey, "not equal");
+var cachedSearchWithLowTtl = new CachedJourneySearch(source, redis.GetDatabase(), TimeSpan.FromSeconds(2));
+await new SearchTests(cachedSearchWithLowTtl, source, redis.GetDatabase(), request).TestC();
+await new SearchTests(cachedSearch, source, redis.GetDatabase(), request).TestD();
 
-// Origin and destination reversed
-var reversedRequest = request with
-{
-    FromStopId = "STOP-AIRPORT",
-    ToStopId = "STOP-NORREPORT"
-};
-Check(CacheKey.Build(request), CacheKey.Build(reversedRequest), "not equal");
-
-// The same instant written as 06:00Z or 08:00+02:00
-var timeZoneRequest = request with
-{
-    Start = DateTimeOffset.Parse("2026-10-02T08:00:00+02:00")
-};
-Check(CacheKey.Build(request), CacheKey.Build(timeZoneRequest), "equal");
-
-// Stop pairs A:B / C and A / B:C
-var reqAB = request with { FromStopId = "A:B", ToStopId = "C" };
-var reqA = request with { FromStopId = "A", ToStopId = "B:C" };
-Check(CacheKey.Build(reqAB), CacheKey.Build(reqA), "not equal");
-
-static void Check(string first, string second, string expected)
-{
-    var actual = first == second ? "equal" : "not equal";
-    Console.WriteLine($"Expected: {expected}.\nWas: {actual}");
-}
