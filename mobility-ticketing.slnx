@@ -1,6 +1,8 @@
 <Solution>
   <Folder Name="/labs/" />
   <Folder Name="/labs/lab06-redis-cache/">
+    <File Path="labs/lab06-redis-cache/cancel.js" />
+    <File Path="labs/lab06-redis-cache/decrement_if_positive.lua" />
     <Project Path="labs/lab06-redis-cache/CacheLab/CacheLab.csproj" />
   </Folder>
 </Solution>

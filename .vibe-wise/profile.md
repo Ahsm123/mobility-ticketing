@@ -26,7 +26,8 @@ Implementation style: Learner reasons and writes the code. AI helps put ideas in
 No demonstrated understanding recorded yet.
 
 ## Developing Concepts
-None recorded yet.
+- Cache vs source of truth (lab 06 sec 8): in their own words, Redis is an estimate and must not decide a purchase; the purchase is decided in a Postgres transaction and Redis is updated afterwards. Their first idea was a Redis "rollback", so cross-system atomicity is still being consolidated.
+- Cache invalidation and staleness (lab 06 sec 5): explained the read-before-cancel write-back race in their own words. Summarised the trade-off as active invalidation vs passive expiry, and staleness vs effort. First attempt blamed a missing DB lock, so the cross-system gap is newly understood.
 
 ## Revisit
 None recorded yet.

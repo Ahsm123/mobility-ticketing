@@ -244,3 +244,153 @@ morning search twice. Each value has only one fault:
 
 All runs returned `[LAB05-T-OK]`. Run 1 prints `invalid` and calls MongoDB, so the value was found and rejected. Run 2
 is a hit, so the `SET` after the MongoDB call replaced the invalid value.
+
+## 5 Cancel a cached departure
+
+TTL set to 5 min.
+Before step 1 Mongo was reset and the morning key was deleted.
+
+| Step | Action                       | Result                                | TTL after |
+|------|------------------------------|---------------------------------------|-----------|
+| 2    | Cached search                | MongoDB, `[LAB05-T-OK]`               | 300 s     |
+| 3    | `cancel.js`                  | `matchedCount: 2`, `modifiedCount: 2` |           |
+| 4    | Uncached search (Fetch)      | MongoDB, `[]`                         |           |
+| 5    | Cached search, before expiry | Redis, `[LAB05-T-OK]`                 | 298 s     |
+| 6    | `DEL` morning key            | `1` (key removed)                     |           |
+| 7    | Cached search again          | MongoDB, `[]`                         | 300 s     |
+
+Steps 4 and 5 ran right after each other and gave different answers to the same search: MongoDB knows the trip is
+cancelled, but the cache still returns it. After the `DEL`, step 7 is a miss and caches the new `[]` with a new TTL.
+
+### 5.1 What the passenger saw before and after deletion
+
+After 2, the morning search is SET in redis, when the the trip is cancelled, but we do the cached search,
+we still get the trip returned from redis, even thought uncached returs [].
+
+After deleting the key or it expires from the cache, the cached search will fetch from Mongo again,
+and return [].
+
+### 5.2 What would happen if MongoDB had not yet received the cancellation
+
+If the cancellation hadn't reached Mongo yet, the search would fetch from Mongo,
+and store the stale trip again for a full TTL.
+This means we need to update the source first, and invalidate after that
+
+### 5.3 Why an in-progress search could write an old result back after deletion
+
+Order is: read from Mongo, cancel, DEL, then the slow search SET.
+If the SET was done before the DEL, the DEL would have removed it. The problem is that SET comes after DEL.
+
+## 6 Stop Redis
+
+Each test is one morning search per run with `dotnet run -- cached`, which prints the data source, trip IDs and the
+time.
+
+### 6.1 Test A: Redis is unavailable
+
+`docker compose stop redis`
+
+```
+cache unavailable
+MongoDB: [LAB05-T-OK], 59 ms
+```
+
+The cache failure is reported, and the search still returns the MongoDB result. 59 ms.
+
+### 6.2 Test B: Redis and MongoDB are unavailable
+
+`docker compose stop mongo` (Redis still stopped)
+
+```
+cache unavailable
+Unhandled exception. System.InvalidOperationException: search error: MongoDB search failed
+ ---> System.TimeoutException: A timeout occurred after 2010ms selecting a server ...
+```
+
+The search fails visibly after the 2 s `ServerSelectionTimeout` instead of returning `[]`, so a failure is not
+mistaken for "no departures".
+
+### 6.3 Restore the services
+
+`docker compose start mongo redis`
+
+| Run | Result                          |
+|-----|---------------------------------|
+| 1   | MongoDB, `[LAB05-T-OK]`, 82 ms  |
+| 2   | Redis, `[LAB05-T-OK]`, 33 ms    |
+
+Both services work again: run 1 is a miss and fills the cache, run 2 is a hit.
+
+## 7 Send several searches at once
+
+`dotnet run -- batch` deletes the morning key, adds a 200 ms delay before the MongoDB query and sends two batches of
+ten concurrent searches.
+
+| Requests | Delay  | Batch 1                                        | Batch 2 |
+|----------|--------|------------------------------------------------|---------|
+| 10       | 200 ms | 10 MongoDB calls                               | 0       |
+| 2,000    | 1 ms   | 2,000 MongoDB calls                            | 0       |
+| 20,000   | 1 ms   | 20,000 MongoDB calls, many `cache unavailable` | 0       |
+
+All requests send their Redis `GET` before the first MongoDB query is done, so they all miss and all query MongoDB.
+This is a cache stampede. Batch 2 runs after the `SET`, so every request is a hit. At 20,000 the client timed out on
+Redis and fell back to MongoDB, adding even more load.
+
+## 8 Try a seat counter
+
+### 8.1 Store two counts
+A key has only one value. Trup 1 has 0 seats and trip 2 has 10.
+We can only save one count on a key, so if we save count on that key, one of the trips would have a wrong number,
+or maybe both if counts are summed, it could be an issue aswell. Seat count belongs on a specific trip / the trip-id-
+
+0 = known, means sold out.
+Missing value is ambigious, it could be 0, it could also be the counter was not read or key was expired.
+We should not guess, if we interpret unkown as sold out, trips are showns as sold out, even if they might not be,
+and if we interpret it as not sold out, since its not 0, we could oversell. The script returns availability unkown,
+which means the caller has to check at the source. 
+
+### 8.2 Decrease only a positive count
+
+| Step          | Result                 |
+|---------------|------------------------|
+| `SET` 1       | `OK`                   |
+| Script        | `0`                    |
+| Script again  | `-1`                   |
+| `DEL`         | `1`                    |
+| Script        | `availability unknown` |
+
+The first run passes all checks and `DECR` takes the count from 1 to 0. The second run hits `current == 0` and
+returns -1 early, without decreasing. After the `DEL`, `GET` returns nothing, so the script stops at the first check.
+
+The script did nothing in PostgreSQL. No seat was reserved, no ticket created and no payment. It only ran `GET`
+and `DECR` on a Redis counter.
+
+The difference is that Redis is only an estimate, and it must not be responsible for a purchase. A purchase must
+always be checked against the database in a transaction, and only after that can we try to update Redis. It is not
+critical that Redis is 100% synced with the database, it is just an estimate. The script is still atomic, so
+two requests at the same time cannot both read 1 and decr the count to -1.
+
+## 9 Decide what belongs in Redis
+
+Proposed expiries: search results 30 min is too long, it can show cancelled or departed trips. Route/day seat counts
+do not work, counts belong to one trip (8.1). 24 h for routes and stops is fine, since they rarely change and are
+invalidated when they do. `SET`/`GET`/`DEL` on the route and stop keys below worked as expected.
+
+| Data              | Example key / value                                      | Source               | Expiry                        | Updated by                     | Deleted when            |
+|-------------------|----------------------------------------------------------|----------------------|-------------------------------|--------------------------------|-------------------------|
+| Search results    | `search:LAB06:v2:CPH:…` / cache entry with items         | MongoDB              | 30 s, capped at 1st departure | The search, on a miss          | TTL                     |
+| Trip availability | `availability:LAB06:TRIP-ONE` / `10`                     | PostgreSQL `trips`   | 30 s                          | The purchase, after commit     | TTL                     |
+| Route information | `route:LAB06:LINE-M2` / route row as JSON                | PostgreSQL `routes`  | 24 h                          | The reader, on a miss          | Route changed, or TTL   |
+| Stop information  | `stop:LAB06:STOP-AIRPORT` / stop row as JSON             | PostgreSQL `stops`   | 24 h                          | The reader, on a miss          | Stop changed, or TTL    |
+
+If Redis has no usable copy, each value is fetched from its source. Routes, stops and counts can be invalidated,
+because the key is the object's ID. Search results cannot: one trip is in many searches, and nothing knows which
+keys exist, so they rely on a short TTL.
+
+Outside the lab I would use 30 s for journey search, capped at the first departure. Reads do not renew the TTL
+(3.3), so a hot search still expires every 30 s, but with traffic like Rejseplanen the next request refills it
+right away, and every other request in those 30 s is a hit. Within those 30 s a cancellation, sold seats or a delay can still make a result
+out of date, which is fine since a purchase always checks PostgreSQL.
+
+Two passengers searching a minute apart do not share an entry: the 30 s key has expired, and if the app uses "now"
+as the start time, the key is different anyway.

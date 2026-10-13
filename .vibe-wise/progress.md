@@ -74,6 +74,42 @@ Implemented by AI; ran with Docker: all 3 cases `invalid` + MongoDB/1 call, then
 
 Next: next section 4 test.
 
+## Lab 06 section 5: cancel a cached departure (2026-10-12)
+
+Status: Build checkpoint pending. Waiting for the learner's approach.
+
+Spec (pasted by learner): reset Mongo and delete the morning key; TTL 5 min; run the morning search; cancel every copy of LAB05-T-OK in Mongo using last week's update; uncached search should give []; cached search should still give LAB05-T-OK; delete the morning key; cached search should give []. Explain what the passenger sees, the case where Mongo hasn't received the cancel yet, and the in-progress write-back race (quiz question 6, not in the repo; asked learner to paste it). Afterwards, restore the 20 s TTL and reset Mongo.
+
+Risk flagged: lab 05 `updates.js` updates `journey_search_by_trip` (model 2), but `MongoJourneySearch` reads `journey_search` (model 1, filters on `departures.status: "Scheduled"`), so the uncached search would still return LAB05-T-OK.
+
+Open questions to the learner: manual or code (TestE); 5 min TTL via Program `ttl` or a separate instance; what "uncached search" calls; how to keep the cancellation from leaking into tests A–D.
+
+Learner skipped the Build checkpoint by explicit request ("just tell me what to run, I'll see the results and conclude myself"). AI gave a manual run plan: Program `ttl` set to 5 min, an `args` switch (`cached` / `uncached`) that returns early, `cancel.js` (journey_search + arrayFilters, status Cancelled), and PowerShell steps 1–7 plus cleanup. The learner pasted the code; AI then fixed the formatting on request. The section 5 block now sits right after `request` in Program, `ttl` on line 13 is 5 min (marked to restore), and `cancel.js` is clean. Build 0 errors. The learner ran it but found it confusing (output not shared). AI explained the step table (Mongo = source, Redis = snapshot). Learner's conclusion: "the point is that you have to invalidate the cache" (covers 5.1). AI asked when DEL is not enough (5.2 ordering, 5.3 write-back race); the learner had AI write these as TODO questions in README section 5, without answers. The learner wrote answers to 5.1–5.3 and revised them after feedback. In conversation they explained the 5.3 race correctly: the read happened before the cancel, so the value was already stale. AI then gave solution options on request (short TTL, double delete, versioning, lease); the choice is the learner's, and no implementation is required. AI ran steps 1–7 on request; all matched the expected results. AI wrote the result table into README section 5, then cleaned up: `ttl` back to 20 s, Mongo reset, morning key deleted (the uncached search returns `[LAB05-T-OK]` again). The `args` block is kept in Program. Still open: link quiz question 6 into 5.3 (question not shared). Previously: waiting for the learner's results, their conclusions and quiz question 6.
+
+## Lab 06 section 6: stop Redis (2026-10-12)
+
+Learner asked whether the current approach is a problem. AI's assessment: the core (`CachedJourneySearch`) is fine; the issue is that Program is a full test runner that assumes all services are up, while the lab expects one search per run. Learner decided to just follow the lab. They added a stopwatch to the `cached` branch (AI gave the snippet) and ran it: A `cache unavailable` + MongoDB 59 ms; B unhandled `InvalidOperationException` after the 2 s Mongo timeout; after restore, MongoDB 82 ms then Redis 33 ms. The unhandled exception is accepted as "fails visibly". AI tidied README section 6 on request (6.1–6.3).
+
+## Lab 06 section 7: concurrent searches / stampede (2026-10-12)
+
+The learner added the `batch` arg branch (AI gave the snippet). Result at 10 requests / 200 ms: batch 1 = 10 calls, batch 2 = 0. The learner experimented on their own: 2000 and 20k requests at 1 ms also missed every time; 20k gave many `cache unavailable` (client timeouts / likely thread-pool starvation, not Redis down; batch 2 = 0 proves Redis was up). AI wrongly explained a "1 ms" result that was really a stale `--no-build` binary; the learner caught it.
+
+Optional part: single-flight. Learner decisions (own reasoning): in-process, because worst case = one call per server, which is good enough; a field on the class; checked only after a miss; the first request starts the fetch, others await the same Task; the entry is removed afterwards (after AI corrected the why: it would otherwise be a stale cache with no expiry). Misconception corrected: "they share a connection" — sharing the pipe does not dedupe the work.
+AI-proposed additions, accepted at Implementation checkpoint: `ConcurrentDictionary<string, Lazy<Task<List<Journey>>>>`, removal in `finally` (success and failure), SET inside the shared work, waiters get Source `MongoDB`, the Redis-down path also goes through single-flight.
+Implemented by AI in `CachedJourneySearch.cs` (`inFlight` field, `FetchAndCache`). Build 0/0. Batch run twice: batch 1 = 1 call, batch 2 = 0. Full run of sections 2–4 unchanged (Test C run 3 refetches after expiry, so removal works). Not verified: failure path / Redis-down batch (the batch branch's KeyDelete throws when Redis is down). README section 7 not written yet.
+The learner then said the concept made sense and asked to remove it. `CachedJourneySearch.cs` restored to HEAD; build 0/0; batch back to 10 / 0. Single-flight was understood and tried, not kept.
+
+## Lab 06 section 8: seat counter (2026-10-13)
+
+Ran by hand after AI removed a UTF-8 BOM from `decrement_if_positive.lua` (Rider added it; Redis Lua failed with `unexpected symbol`). Path differs from the spec: `/scripts/decrement_if_positive.lua`. Results as expected: 0, -1, DEL 1, `availability unknown`.
+Learner's reasoning (own words, after feedback): the key must be per trip ID, because one key = one value; missing ≠ 0 (unknown vs sold out, don't guess, the caller checks the source). They first said the script "reserved a seat", then corrected it: it only DECRs Redis. First proposed compensating Redis with a rollback; after the explanation, concluded that Redis is an estimate, the purchase is decided in a Postgres transaction, and Redis is updated afterwards (not critical if it is off). README section 8 part 1 written by the learner (mixed DA/EN, no heading/output); part 2 pending in the README.
+
+## Lab 06 section 9: what belongs in Redis (2026-10-13)
+
+Learner's decisions (own reasoning): search 30 s (hot keys stay alive at Rejseplanen-scale traffic; a 30 min TTL would show departed or cancelled trips); counts per trip, not route/day, at 30 s; route/stop 24 h plus invalidation on change; search TTL capped at the first departure; keys `route:LAB06:LINE-M2`, `stop:LAB06:STOP-AIRPORT` (the city was dropped after AI showed that `routes.id` is a PK on its own).
+Corrected along the way: a trip ID was used as the route key; "who updates" was first answered about the sources, not Redis; LRU was proposed as cleanup (it is memory, not correctness); "everything must be invalidated" was refined to "invalidate when the key can be derived from the object, else TTL". The learner related it to cache warming in their happy-headlines project. Two passengers: answered TTL first; AI added the key-granularity point.
+AI ran the route/stop SET/GET/DEL (the learner found the commands not useful) and wrote README section 9 (9.1–9.4) in the learner's wording on request. Lab 06 is complete apart from quiz Q6 in 5.3.
+
 ## Lab 06: split tests out of Program.cs (2026-10-12)
 
 Status: Design confirmed. Learner implements.
