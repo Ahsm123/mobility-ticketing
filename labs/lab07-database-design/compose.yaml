@@ -31,5 +31,13 @@ services:
     environment:
       LAB_TEST_CONNECTION: Host=postgres;Database=mobility_l07_test;Username=${POSTGRES_USER:-mobility};Password=${POSTGRES_PASSWORD:-mobility}
     volumes: ["./docs/evidence/lecture07:/evidence"]
+  pgweb:
+    image: sosedoff/pgweb
+    environment:
+      PGWEB_DATABASE_URL: postgres://${POSTGRES_USER:-mobility}:${POSTGRES_PASSWORD:-mobility}@postgres:5432/mobility_l07?sslmode=disable&search_path=lab07
+    ports:
+      - "127.0.0.1:8082:8081"
+    depends_on:
+      postgres: {condition: service_healthy}
 volumes:
   labdata:
