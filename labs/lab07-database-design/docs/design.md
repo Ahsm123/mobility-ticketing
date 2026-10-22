@@ -23,19 +23,29 @@ order by r.id;
 ```
 
 # Include vs projection to DTO
-Include would also make 1 query, which satifies one part of the contract,
-but include would also have 4 routes and 4 trips before scale, because it returns
-entities which result in tracking, because it has to materialize the entities in memory.
-This is avoided with projection to a record, beacuse we only get the values, and compute it in the db.
+
+Include also makes 1 call, but here it asks for the Route entities and not the values.
+So EF has to materialize an object for every route and trip, and then each of them is registered
+in the change tracker, unless we use AsNoTracking, since that is default for entities, but it would not
+remove the objects. If we instead project to the record, we only ask for values, so then there is nothing to
+materialize or track, and also count and min are computed in the database, instead of in memory.
+This makes the dto read-only, so if we wanted to rename a route, we could not do that, but would have to go through
+the entity instead. This is fine for the live-board, since its read-only.
+EF threw an error when the last Select was before OrderBy, because after Select its not Routes anymore, and
+then it does not know where r.Id comes from, because after Select, we are working on the DTO.
+Also if we want to include R3 and R4 with 0 trips, we need to start from Routes and not Trips, if we start from Trips
+there is no matching Routes.
 
 So it would look like this
 
 Include:
+
 - calls: 1
 - objects: 8 (4 route + 4 trip)
 - columns: 6 (id, name + id, route_id, scheduled.., status)
 
 Projection to DTO:
+
 - calls: 1
 - objects: 0
-- colums: 4 ( id, name, count, min)
+- columns: 4 ( id, name, count, min)
